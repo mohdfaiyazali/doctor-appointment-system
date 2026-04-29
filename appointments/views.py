@@ -4,10 +4,40 @@ from doctors.models import DoctorProfile
 from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from datetime import time
+from datetime import datetime, date
 
 
 User = get_user_model()
+
+
+@login_required
+def doctor_dashboard(request):
+    # Only allow doctors
+    if request.user.role != 'doctor':
+        return redirect('doctor_list')
+
+    appointments = Appointment.objects.filter(
+        doctor=request.user
+    ).order_by('-date', '-time')
+
+    return render(request, 'appointments/doctor_dashboard.html', {
+        'appointments': appointments
+    })
+
+
+@login_required
+def update_status(request, appointment_id, status):
+    appointment = get_object_or_404(
+        Appointment,
+        id=appointment_id,
+        doctor=request.user  # ensure doctor owns it
+    )
+
+    if status in ['confirmed', 'cancelled', 'completed']:
+        appointment.status = status
+        appointment.save()
+
+    return redirect('doctor_dashboard')
 
 
 @login_required
@@ -48,35 +78,64 @@ def book_appointment(request, doctor_id):
     booked_slots = []
     all_slots = generate_time_slots()
 
+    # ✅ Convert selected_date to proper date object
+    selected_date_obj = None
     if selected_date:
-        booked_slots = list(
-            Appointment.objects.filter(
-                doctor=doctor,
-                date=selected_date
-            ).values_list('time', flat=True)
+        try:
+            selected_date_obj = datetime.strptime(selected_date, "%Y-%m-%d").date()
+
+            booked_slots = list(
+                Appointment.objects.filter(
+                    doctor=doctor,
+                    date=selected_date_obj
+                ).values_list('time', flat=True)
+            )
+        except ValueError:
+            selected_date_obj = None
+
+    # ✅ Handle POST (Booking)
+    if request.method == 'POST':
+        date_str = request.POST.get('date')
+        time_str = request.POST.get('time')
+
+        try:
+            selected_date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+            selected_time_obj = datetime.strptime(time_str, "%H:%M").time()
+        except (ValueError, TypeError):
+            messages.error(request, "Invalid date or time format")
+            return redirect(request.path)
+
+        # ❌ Past date check
+        if selected_date_obj < date.today():
+            messages.error(request, "Cannot book past dates")
+            return redirect(request.path + f"?date={date_str}")
+
+        # ❌ Past time check (for today)
+        if selected_date_obj == date.today():
+            current_time = datetime.now().time()
+            if selected_time_obj < current_time:
+                messages.error(request, "Cannot book past time")
+                return redirect(request.path + f"?date={date_str}")
+
+        # ❌ Double booking check
+        if Appointment.objects.filter(
+            doctor=doctor,
+            date=selected_date_obj,
+            time=selected_time_obj
+        ).exists():
+            messages.error(request, "This slot is already booked")
+            return redirect(request.path + f"?date={date_str}")
+
+        # ✅ Create appointment
+        Appointment.objects.create(
+            patient=request.user,
+            doctor=doctor,
+            date=selected_date_obj,
+            time=selected_time_obj
         )
 
-    if request.method == 'POST':
-        date = request.POST.get('date')
-        time_selected = request.POST.get('time')
-
-        exists = Appointment.objects.filter(
-            doctor=doctor,
-            date=date,
-            time=time_selected
-        ).exists()
-
-        if exists:
-            messages.error(request, "This slot is already booked!")
-        else:
-            Appointment.objects.create(
-                patient=request.user,
-                doctor=doctor,
-                date=date,
-                time=time_selected
-            )
-            messages.success(request, "Appointment booked successfully!")
-            return redirect('doctor_list')
+        messages.success(request, "Appointment booked successfully!")
+        return redirect('doctor_list')
 
     return render(request, 'appointments/book_appointment.html', {
         'doctor': doctor,

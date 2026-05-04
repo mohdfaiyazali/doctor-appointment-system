@@ -4,13 +4,13 @@ from doctors.models import DoctorProfile
 from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from datetime import datetime, date
-
+from datetime import datetime, time, date
+from .decorators import doctor_required
 
 User = get_user_model()
 
 
-@login_required
+@doctor_required
 def doctor_dashboard(request):
     # Only allow doctors
     if request.user.role != 'doctor':
@@ -94,48 +94,48 @@ def book_appointment(request, doctor_id):
             selected_date_obj = None
 
     # ✅ Handle POST (Booking)
-    if request.method == 'POST':
-        date_str = request.POST.get('date')
-        time_str = request.POST.get('time')
+        if request.method == 'POST':
+            date_str = request.POST.get('date')
+            time_str = request.POST.get('time')
 
-        try:
-            selected_date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
-            selected_time_obj = datetime.strptime(time_str, "%H:%M").time()
-        except (ValueError, TypeError):
-            messages.error(request, "Invalid date or time format")
-            return redirect(request.path)
+            try:
+                selected_date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                selected_time_obj = datetime.strptime(time_str, "%H:%M").time()
+            except (ValueError, TypeError):
+                messages.error(request, "Invalid date or time format")
+                return redirect(request.path)
 
-        # ❌ Past date check
-        if selected_date_obj < date.today():
-            messages.error(request, "Cannot book past dates")
-            return redirect(request.path + f"?date={date_str}")
-
-        # ❌ Past time check (for today)
-        if selected_date_obj == date.today():
-            current_time = datetime.now().time()
-            if selected_time_obj < current_time:
-                messages.error(request, "Cannot book past time")
+            # ❌ Past date check
+            if selected_date_obj < date.today():
+                messages.error(request, "Cannot book past dates")
                 return redirect(request.path + f"?date={date_str}")
 
-        # ❌ Double booking check
-        if Appointment.objects.filter(
-            doctor=doctor,
-            date=selected_date_obj,
-            time=selected_time_obj
-        ).exists():
-            messages.error(request, "This slot is already booked")
-            return redirect(request.path + f"?date={date_str}")
+            # ❌ Past time check (for today)
+            if selected_date_obj == date.today():
+                current_time = datetime.now().time()
+                if selected_time_obj < current_time:
+                    messages.error(request, "Cannot book past time")
+                    return redirect(request.path + f"?date={date_str}")
 
-        # ✅ Create appointment
-        Appointment.objects.create(
-            patient=request.user,
-            doctor=doctor,
-            date=selected_date_obj,
-            time=selected_time_obj
-        )
+            # ❌ Double booking check
+            if Appointment.objects.filter(
+                doctor=doctor,
+                date=selected_date_obj,
+                time=selected_time_obj
+            ).exists():
+                messages.error(request, "This slot is already booked")
+                return redirect(request.path + f"?date={date_str}")
 
-        messages.success(request, "Appointment booked successfully!")
-        return redirect('doctor_list')
+            # ✅ Create appointment
+            Appointment.objects.create(
+                patient=request.user,
+                doctor=doctor,
+                date=selected_date_obj,
+                time=selected_time_obj
+            )
+
+            messages.success(request, "Appointment booked successfully!")
+            return redirect('doctor_list')
 
     return render(request, 'appointments/book_appointment.html', {
         'doctor': doctor,

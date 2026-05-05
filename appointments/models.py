@@ -18,3 +18,17 @@ class Appointment(models.Model):
 
     def __str__(self):
         return f"{self.patient} - {self.doctor} on {self.date}"
+
+
+class Review(models.Model):
+    appointment = models.OneToOneField('Appointment', on_delete=models.CASCADE)
+    doctor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='doctor_reviews')
+    patient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='patient_reviews')
+
+    rating = models.IntegerField()  # 1 to 5
+    comment = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.patient} -> {self.doctor} ({self.rating})"

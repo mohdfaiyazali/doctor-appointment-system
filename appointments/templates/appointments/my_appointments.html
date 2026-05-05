@@ -28,25 +28,38 @@
 
                 <td>
                     {% if appointment.status == 'pending' %}
-                        <span class="badge bg-warning text-dark">Pending</span>
+                    <span class="badge bg-warning text-dark">Pending</span>
                     {% elif appointment.status == 'confirmed' %}
-                        <span class="badge bg-success">Confirmed</span>
+                    <span class="badge bg-success">Confirmed</span>
                     {% elif appointment.status == 'cancelled' %}
-                        <span class="badge bg-danger">Cancelled</span>
+                    <span class="badge bg-danger">Cancelled</span>
                     {% elif appointment.status == 'completed' %}
-                        <span class="badge bg-primary">Completed</span>
+                    <span class="badge bg-primary">Completed</span>
                     {% endif %}
                 </td>
 
                 <td>
+
                     {% if appointment.status != 'cancelled' and appointment.status != 'completed' %}
-                        <a href="{% url 'cancel_appointment' appointment.id %}"
-                           class="btn btn-danger btn-sm">
-                           Cancel
-                        </a>
-                    {% else %}
-                        <span class="text-muted">N/A</span>
+                    <!-- Cancel button -->
+                    <a href="{% url 'cancel_appointment' appointment.id %}"
+                       class="btn btn-danger btn-sm">
+                        Cancel
+                    </a>
                     {% endif %}
+
+                    {% if appointment.status == 'completed' %}
+                    <!-- Review button -->
+                    <a href="{% url 'add_review' appointment.id %}"
+                       class="btn btn-warning btn-sm">
+                        Review
+                    </a>
+                    {% endif %}
+
+                    {% if appointment.status == 'cancelled' %}
+                    <span class="text-muted">N/A</span>
+                    {% endif %}
+
                 </td>
             </tr>
             {% empty %}

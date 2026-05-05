@@ -8,6 +8,65 @@
 
     <h2 class="mb-4">Doctor Dashboard</h2>
 
+    <div class="row mb-4">
+
+        <div class="col-6 col-md-3">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-body text-center">
+                    <h5>Total</h5>
+                    <h3>{{ total_appointments }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-body text-center">
+                    <h5>Today</h5>
+                    <h3>{{ today_appointments }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card text-dark bg-warning mb-3">
+                <div class="card-body text-center">
+                    <h5>Pending</h5>
+                    <h3>{{ pending_count }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-body text-center">
+                    <h5>Confirmed</h5>
+                    <h3>{{ confirmed_count }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card text-white bg-secondary mb-3">
+                <div class="card-body text-center">
+                    <h5>Completed</h5>
+                    <h3>{{ completed_count }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card text-white bg-danger mb-3">
+                <div class="card-body text-center">
+                    <h5>Cancelled</h5>
+                    <h3>{{ cancelled_count }}</h3>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
     <table class="table table-bordered table-striped">
         <thead class="table-dark">
             <tr>

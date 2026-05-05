@@ -6,22 +6,67 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from datetime import datetime, time, date
 from .decorators import doctor_required
+from django.utils.timezone import now
+from .models import Review
+from .forms import ReviewForm
 
 User = get_user_model()
 
 
-@doctor_required
-def doctor_dashboard(request):
-    # Only allow doctors
-    if request.user.role != 'doctor':
-        return redirect('doctor_list')
+@login_required
+def add_review(request, appointment_id):
+    appointment = get_object_or_404(Appointment, id=appointment_id)
 
-    appointments = Appointment.objects.filter(
-        doctor=request.user
-    ).order_by('-date', '-time')
+    # ❌ Only allow if completed
+    if appointment.status != 'completed':
+        messages.error(request, "You can only review completed appointments")
+        return redirect('my_appointments')
+
+    # ❌ Prevent duplicate review
+    if Review.objects.filter(appointment=appointment).exists():
+        messages.error(request, "You already reviewed this appointment")
+        return redirect('my_appointments')
+
+    if request.method == 'POST':
+        form = ReviewForm(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.appointment = appointment
+            review.doctor = appointment.doctor
+            review.patient = request.user
+            review.save()
+
+            messages.success(request, "Review submitted!")
+            return redirect('my_appointments')
+    else:
+        form = ReviewForm()
+
+    return render(request, 'appointments/add_review.html', {'form': form})
+
+@login_required
+def doctor_dashboard(request):
+    doctor = request.user
+
+    appointments = Appointment.objects.filter(doctor=doctor)
+
+    # 📊 Stats
+    total_appointments = appointments.count()
+
+    today_appointments = appointments.filter(date=now().date()).count()
+
+    pending_count = appointments.filter(status='pending').count()
+    confirmed_count = appointments.filter(status='confirmed').count()
+    completed_count = appointments.filter(status='completed').count()
+    cancelled_count = appointments.filter(status='cancelled').count()
 
     return render(request, 'appointments/doctor_dashboard.html', {
-        'appointments': appointments
+        'appointments': appointments,
+        'total_appointments': total_appointments,
+        'today_appointments': today_appointments,
+        'pending_count': pending_count,
+        'confirmed_count': confirmed_count,
+        'completed_count': completed_count,
+        'cancelled_count': cancelled_count,
     })
 
 

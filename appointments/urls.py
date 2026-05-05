@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import book_appointment, my_appointments, cancel_appointment, doctor_dashboard, update_status
+from .views import book_appointment, my_appointments, cancel_appointment, doctor_dashboard, update_status, add_review
 
 urlpatterns = [
     path('book/<int:doctor_id>/', book_appointment, name='book_appointment'),
@@ -8,5 +8,5 @@ urlpatterns = [
 
     path('doctor/', doctor_dashboard, name='doctor_dashboard'),
     path('update/<int:appointment_id>/<str:status>/', update_status, name='update_status'),
-
+    path('review/<int:appointment_id>/', add_review, name='add_review'),
 ]
